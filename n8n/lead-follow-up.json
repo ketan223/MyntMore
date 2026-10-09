@@ -1,0 +1,47 @@
+{
+  "name": "Myntmore Lead Follow-Up - Drafts Only",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "myntmore-lead-event",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "8df71982-4c2c-4aa9-bc82-81401faf2931",
+      "name": "Lead event webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "myntmore-lead-event"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_VERCEL_DOMAIN/api/automation/process",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "Content-Type", "value": "application/json" },
+          { "name": "x-automation-secret", "value": "REPLACE_WITH_AUTOMATION_SECRET" }
+        ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || $json) }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "06c94a0a-54a2-4869-896f-ea8d82d33843",
+      "name": "Process, draft, route, record alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": { "Lead event webhook": { "main": [[{ "node": "Process, draft, route, record alert", "type": "main", "index": 0 }]] } },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": []
+}

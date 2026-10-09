@@ -1,0 +1,29 @@
+{
+  "name": "myntmore-round-2",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "tsx --test tests/*.test.ts",
+    "import": "node --env-file=.env.local --import tsx scripts/import-leads.ts",
+    "retry": "node --env-file=.env.local --import tsx scripts/retry-failed.ts",
+    "check:config": "node --env-file=.env.local --import tsx scripts/check-config.ts",
+    "preview:leads": "tsx scripts/preview-leads.ts"
+  },
+  "dependencies": {
+    "csv-parse": "^7.0.3",
+    "next": "^16.4.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
