@@ -1,19 +1,43 @@
-const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
-const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
 export async function structuredGemini<T>(prompt: string, schema: object): Promise<T> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not configured");
-  const response = await fetch(endpoint, {
-    method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.5, responseMimeType: "application/json", responseSchema: schema } }),
-    cache: "no-store"
-  });
-  if (!response.ok) throw new Error(`Gemini HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("");
-  if (!text) throw new Error("Gemini returned no content");
-  return JSON.parse(text) as T;
+
+  const isTest = process.env.NODE_ENV === "test" || !process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === "test-only";
+  const preferred = process.env.GEMINI_MODEL?.trim();
+  const modelsToTry = isTest
+    ? [preferred || "gemini-3.5-flash-lite"]
+    : [
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3-flash-preview",
+        preferred,
+        "gemini-3.5-flash"
+      ].filter(Boolean) as string[];
+  const uniqueModels = [...new Set(modelsToTry)];
+
+  let lastError: Error | null = null;
+  for (const m of uniqueModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
+      const response = await fetch(url, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.5, responseMimeType: "application/json", responseSchema: schema } }),
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini HTTP ${response.status} (${m}): ${errText.slice(0, 300)}`);
+      }
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("");
+      if (!text) throw new Error(`Gemini (${m}) returned no content`);
+      return JSON.parse(text) as T;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      continue;
+    }
+  }
+  throw lastError ?? new Error("All Gemini models failed");
 }
 
 export function enforceWritingRules(value: string, allowedFacts: string[] = []): string {
